@@ -85,7 +85,20 @@ jobs:
       - name: 10. Verify published package
         if: steps.npm_version.outputs.published == 'false'
         run: |
-          npm view "${{ steps.npm_version.outputs.package_name }}@${{ steps.npm_version.outputs.package_version }}" version --registry=https://registry.npmjs.org
+          PACKAGE_SPEC="${{ steps.npm_version.outputs.package_name }}@${{ steps.npm_version.outputs.package_version }}"
+
+          for attempt in 1 2 3 4 5 6; do
+            if npm view "$PACKAGE_SPEC" version --registry=https://registry.npmjs.org; then
+              echo "$PACKAGE_SPEC is visible on npm."
+              exit 0
+            fi
+
+            echo "npm registry has not exposed $PACKAGE_SPEC yet. Retry $attempt/6..."
+            sleep 10
+          done
+
+          echo "::error::$PACKAGE_SPEC was published but could not be verified after retries."
+          exit 1
 
       - name: 11. Write deploy summary
         if: always()

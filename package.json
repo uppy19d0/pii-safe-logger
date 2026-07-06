@@ -1,6 +1,6 @@
 {
   "name": "pii-safe-logger",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "PII-safe structured logger and redaction utilities for JavaScript and TypeScript.",
   "type": "module",
   "main": "./src/index.js",

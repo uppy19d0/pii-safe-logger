@@ -10,6 +10,17 @@ This repository publishes `pii-safe-logger` to npm through GitHub Actions.
 4. Add a repository secret named `NPM_TOKEN`.
 5. Paste the new npm token as the secret value.
 
+## Automatic Deploy
+
+Every push to `main` starts the deploy workflow. The workflow checks
+`package.json` against npm before publishing.
+
+- If the version already exists on npm, publishing is skipped.
+- If the version does not exist on npm, the workflow runs tests and publishes it.
+
+The package currently published on npm is `0.2.2`. If `package.json` contains
+`1.0.0`, the workflow will publish `1.0.0` because it is a new version.
+
 ## Manual Deploy
 
 1. Open the repository on GitHub.
@@ -24,10 +35,10 @@ The workflow will:
 1. check out the code
 2. set up Node.js
 3. show the package name and version
-4. install dependencies with `npm ci`
-5. run tests
-6. verify the npm token
-7. stop if the version already exists on npm
+4. check whether the version already exists on npm
+5. install dependencies with `npm ci` when the version is new
+6. run tests when the version is new
+7. verify the npm token when the version is new
 8. preview the package files
 9. publish to npm with provenance
 10. verify the published package version

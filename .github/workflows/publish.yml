@@ -2,6 +2,9 @@ name: Deploy to npm
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
   release:
     types:
       - published
@@ -38,39 +41,64 @@ jobs:
           echo "Version: $(node -p "require('./package.json').version")"
           echo "Registry: https://registry.npmjs.org"
 
-      - name: 4. Install clean dependencies
-        run: npm ci --ignore-scripts
-
-      - name: 5. Run tests
-        run: npm test
-
-      - name: 6. Verify npm token
-        run: npm whoami --registry=https://registry.npmjs.org
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: 7. Check version is not already published
+      - name: 4. Check npm version
+        id: npm_version
         run: |
           PACKAGE_NAME="$(node -p "require('./package.json').name")"
           PACKAGE_VERSION="$(node -p "require('./package.json').version")"
 
+          echo "package_name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "package_version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+
           if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
-            echo "::error::$PACKAGE_NAME@$PACKAGE_VERSION already exists on npm. Bump package.json version first."
-            exit 1
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$PACKAGE_NAME@$PACKAGE_VERSION already exists on npm. Publish will be skipped."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "$PACKAGE_NAME@$PACKAGE_VERSION is ready to publish."
           fi
 
-          echo "$PACKAGE_NAME@$PACKAGE_VERSION is ready to publish."
+      - name: 5. Install clean dependencies
+        if: steps.npm_version.outputs.published == 'false'
+        run: npm ci --ignore-scripts
+
+      - name: 6. Run tests
+        if: steps.npm_version.outputs.published == 'false'
+        run: npm test
+
+      - name: 7. Verify npm token
+        if: steps.npm_version.outputs.published == 'false'
+        run: npm whoami --registry=https://registry.npmjs.org
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: 8. Preview npm package contents
+        if: steps.npm_version.outputs.published == 'false'
         run: npm pack --dry-run
 
       - name: 9. Publish to npm
+        if: steps.npm_version.outputs.published == 'false'
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: 10. Verify published package
+        if: steps.npm_version.outputs.published == 'false'
         run: |
-          PACKAGE_NAME="$(node -p "require('./package.json').name")"
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version --registry=https://registry.npmjs.org
+          npm view "${{ steps.npm_version.outputs.package_name }}@${{ steps.npm_version.outputs.package_version }}" version --registry=https://registry.npmjs.org
+
+      - name: 11. Write deploy summary
+        if: always()
+        run: |
+          {
+            echo "## npm Deploy Pipeline"
+            echo ""
+            echo "Package: \`${{ steps.npm_version.outputs.package_name }}\`"
+            echo "Version: \`${{ steps.npm_version.outputs.package_version }}\`"
+            echo ""
+            if [ "${{ steps.npm_version.outputs.published }}" = "true" ]; then
+              echo "Result: skipped because this version already exists on npm."
+            else
+              echo "Result: publish attempted. Check the step status above for the final result."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

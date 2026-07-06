@@ -1,7 +1,6 @@
 # pii-safe-logger
 
 [![CI](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/ci.yml/badge.svg)](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/ci.yml)
-[![Deploy to npm](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/publish.yml/badge.svg)](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/publish.yml)
 
 PII-safe structured logging for JavaScript and TypeScript. It redacts sensitive
 data before logs reach `console`, a custom sink, or your observability pipeline.
@@ -42,7 +41,6 @@ and redaction rules.
 - Supports custom rules, custom field names, field-specific partial masking,
   custom redaction text, custom sinks, custom formatters, log levels, child
   loggers, and transaction IDs for traceability.
-- Publishes from GitHub Actions with npm provenance.
 
 ## Installation
 
@@ -515,29 +513,14 @@ npm install
 npm test
 ```
 
-## Publishing
+## Versioning
 
-This repository publishes automatically from GitHub Actions.
+This package follows Semantic Versioning. Patch releases are reserved for
+backwards-compatible fixes and documentation updates. Minor releases may add new
+APIs, options, or redaction coverage. Major releases are used for breaking
+changes.
 
-1. Update `version` in `package.json`.
-2. Commit and push to `main`.
-3. The `Deploy to npm` workflow checks whether the version already exists.
-4. If the version is new, it runs tests and publishes with npm provenance.
-
-See [DEPLOY.md](./DEPLOY.md) for the full release workflow.
-
-## Supply Chain Security
-
-The repository includes:
-
-- CI on push and pull request
-- automatic npm deploy on `main`
-- duplicate-version protection before `npm publish`
-- npm provenance attestations
-- pinned GitHub Actions
-- Dependabot updates
-- `SECURITY.md`
-- MIT license
+See [SEMVER.md](./SEMVER.md) for the public API contract and release rules.
 
 ## Security Note
 

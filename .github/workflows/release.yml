@@ -1,0 +1,113 @@
+name: Create GitHub Release
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag and release package version
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: 1. Checkout source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: 2. Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: 3. Read package metadata
+        id: package
+        run: |
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          TAG_NAME="v$PACKAGE_VERSION"
+
+          echo "name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+          echo "Package: $PACKAGE_NAME"
+          echo "Version: $PACKAGE_VERSION"
+          echo "Tag: $TAG_NAME"
+
+      - name: 4. Check existing release
+        id: release
+        run: |
+          TAG_NAME="${{ steps.package.outputs.tag }}"
+
+          git fetch --tags --force
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Release $TAG_NAME already exists. Nothing to create."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG_NAME does not exist yet."
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: 5. Create tag and GitHub release
+        if: steps.release.outputs.exists == 'false'
+        run: |
+          PACKAGE_NAME="${{ steps.package.outputs.name }}"
+          PACKAGE_VERSION="${{ steps.package.outputs.version }}"
+          TAG_NAME="${{ steps.package.outputs.tag }}"
+          NOTES_FILE="$(mktemp)"
+
+          {
+            echo "Automated release for $PACKAGE_NAME@$PACKAGE_VERSION."
+            echo ""
+            echo "Created after CI passed for commit $TARGET_SHA."
+          } > "$NOTES_FILE"
+
+          if git rev-parse -q --verify "refs/tags/$TAG_NAME" >/dev/null; then
+            gh release create "$TAG_NAME" \
+              --title "$PACKAGE_NAME $TAG_NAME" \
+              --notes-file "$NOTES_FILE"
+          else
+            gh release create "$TAG_NAME" \
+              --target "$TARGET_SHA" \
+              --title "$PACKAGE_NAME $TAG_NAME" \
+              --notes-file "$NOTES_FILE"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: 6. Write release summary
+        if: always()
+        run: |
+          {
+            echo "## GitHub Release Pipeline"
+            echo ""
+            echo "Package: \`${{ steps.package.outputs.name }}\`"
+            echo "Version: \`${{ steps.package.outputs.version }}\`"
+            echo "Tag: \`${{ steps.package.outputs.tag }}\`"
+            echo ""
+            if [ "${{ steps.release.outputs.exists }}" = "true" ]; then
+              echo "Result: skipped because the release already exists."
+            else
+              echo "Result: release creation attempted. Check the step status above."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -48,6 +48,11 @@ The library masks:
 - `createPiiSafeLogger(options)` creates a logger with `debug`, `info`, `warn`, `error`, and `log`
 - `maskPii(value, options)` returns a deep-masked copy of the value
 
+## Deploy
+
+See [DEPLOY.md](./DEPLOY.md) for the GitHub Actions pipeline and npm publishing
+steps.
+
 ## Supply Chain Release Checklist
 
 To publish with the strongest npm supply-chain signals:

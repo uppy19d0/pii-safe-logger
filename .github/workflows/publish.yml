@@ -10,30 +10,67 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    name: Deploy package
+    name: Build, test, and publish
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     environment: npm
+    timeout-minutes: 10
     steps:
-      - name: Checkout
+      - name: 1. Checkout source
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
-      - name: Set up Node.js
+      - name: 2. Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
-      - name: Install
+      - name: 3. Show package metadata
+        run: |
+          echo "Package: $(node -p "require('./package.json').name")"
+          echo "Version: $(node -p "require('./package.json').version")"
+          echo "Registry: https://registry.npmjs.org"
+
+      - name: 4. Install clean dependencies
         run: npm ci --ignore-scripts
 
-      - name: Test
+      - name: 5. Run tests
         run: npm test
 
-      - name: Publish to npm
+      - name: 6. Verify npm token
+        run: npm whoami --registry=https://registry.npmjs.org
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 7. Check version is not already published
+        run: |
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "::error::$PACKAGE_NAME@$PACKAGE_VERSION already exists on npm. Bump package.json version first."
+            exit 1
+          fi
+
+          echo "$PACKAGE_NAME@$PACKAGE_VERSION is ready to publish."
+
+      - name: 8. Preview npm package contents
+        run: npm pack --dry-run
+
+      - name: 9. Publish to npm
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 10. Verify published package
+        run: |
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version --registry=https://registry.npmjs.org

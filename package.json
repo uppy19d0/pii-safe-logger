@@ -1,0 +1,56 @@
+{
+  "name": "pii-safe-logger",
+  "version": "1.0.0",
+  "description": "PII-safe structured logger and redaction utilities for JavaScript and TypeScript.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "SECURITY.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "test": "node --test",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [
+    "logger",
+    "pii",
+    "pii-safe",
+    "redaction",
+    "privacy",
+    "logging",
+    "security",
+    "safe-logging",
+    "javascript",
+    "typescript"
+  ],
+  "author": {
+    "name": "Luis Aneuris Tavarez De Jesus",
+    "url": "https://www.ltavarez.me/"
+  },
+  "homepage": "https://www.ltavarez.me/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uppy19d0/pii-safe-logger.git"
+  },
+  "bugs": {
+    "url": "https://github.com/uppy19d0/pii-safe-logger/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

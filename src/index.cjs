@@ -1,7 +1,9 @@
-export const DEFAULT_REPLACEMENT = "[REDACTED]";
+"use strict";
 
+const DEFAULT_REPLACEMENT = "[REDACTED]";
 const DEFAULT_MAX_DEPTH = 12;
 const DEFAULT_MAX_ARRAY_LENGTH = 100;
+const LEVELS = ["debug", "info", "warn", "error"];
 
 const DEFAULT_REDACT_FIELD_NAMES = [
   "password",
@@ -25,8 +27,6 @@ const DEFAULT_REDACT_FIELD_NAMES = [
   "pin"
 ];
 
-export const DEFAULT_REDACT_FIELDS = DEFAULT_REDACT_FIELD_NAMES.map(normalizeKey);
-
 const EMAIL_PATTERN = /\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b/gi;
 const SSN_PATTERN = /\b\d{3}-?\d{2}-?\d{4}\b/g;
 const CREDIT_CARD_PATTERN = /\b(?:\d[ -]*?){13,19}\b/g;
@@ -36,58 +36,14 @@ const BEARER_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+\b/gi;
 const SECRET_ASSIGNMENT_PATTERN =
   /\b(password|passwd|token|api[_-]?key|secret|otp|pin)\s*[:=]\s*(["']?)[^"',\s;}]+/gi;
 
-export const DEFAULT_REDACTION_RULES = [
-  {
-    name: "email",
-    reason: "email",
-    pattern: EMAIL_PATTERN
-  },
-  {
-    name: "ssn",
-    reason: "national-id",
-    pattern: SSN_PATTERN
-  },
-  {
-    name: "jwt",
-    reason: "token",
-    pattern: JWT_PATTERN
-  },
-  {
-    name: "bearer-token",
-    reason: "token",
-    pattern: BEARER_PATTERN
-  },
-  {
-    name: "secret-assignment",
-    reason: "secret",
-    pattern: SECRET_ASSIGNMENT_PATTERN,
-    replacement(match, _field, quote, options) {
-      const prefix = match.match(/^(.*?[:=]\s*)(["']?)/u);
-      const delimiter = quote || "";
-      return `${prefix ? prefix[1] : ""}${delimiter}${getReplacement(options)}${delimiter}`;
-    }
-  },
-  {
-    name: "credit-card",
-    reason: "payment-card",
-    pattern: CREDIT_CARD_PATTERN,
-    replacement(match, options) {
-      return isLikelyCreditCard(match) ? maskValue(match, options) : match;
-    }
-  },
-  {
-    name: "phone",
-    reason: "phone",
-    pattern: PHONE_PATTERN
-  }
-];
+function normalizeKey(key) {
+  return String(key).replace(/[-_\s]/g, "").toLowerCase();
+}
+
+const DEFAULT_REDACT_FIELDS = DEFAULT_REDACT_FIELD_NAMES.map(normalizeKey);
 
 function getReplacement(options = {}) {
   return options.replacement ?? options.redaction ?? DEFAULT_REPLACEMENT;
-}
-
-function normalizeKey(key) {
-  return String(key).replace(/[-_\s]/g, "").toLowerCase();
 }
 
 function isPlainObject(value) {
@@ -134,6 +90,79 @@ function isLikelyCreditCard(value) {
   return digits.length >= 13 && digits.length <= 19 && passesLuhn(digits);
 }
 
+function maskValue(value, options = {}) {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  const stringValue = String(value);
+  const replacement = getReplacement(options);
+  const preserveFirst = Math.max(0, options.preserveFirst || 0);
+  const preserveLast = Math.max(0, options.preserveLast || 0);
+
+  if (preserveFirst === 0 && preserveLast === 0) {
+    return replacement;
+  }
+
+  if (stringValue.length <= preserveFirst + preserveLast) {
+    return replacement;
+  }
+
+  const start = stringValue.slice(0, preserveFirst);
+  const end = preserveLast > 0 ? stringValue.slice(-preserveLast) : "";
+  return `${start}${replacement}${end}`;
+}
+
+function createMask(options = {}) {
+  return (value) => maskValue(value, options);
+}
+
+const DEFAULT_REDACTION_RULES = [
+  {
+    name: "email",
+    reason: "email",
+    pattern: EMAIL_PATTERN
+  },
+  {
+    name: "ssn",
+    reason: "national-id",
+    pattern: SSN_PATTERN
+  },
+  {
+    name: "jwt",
+    reason: "token",
+    pattern: JWT_PATTERN
+  },
+  {
+    name: "bearer-token",
+    reason: "token",
+    pattern: BEARER_PATTERN
+  },
+  {
+    name: "secret-assignment",
+    reason: "secret",
+    pattern: SECRET_ASSIGNMENT_PATTERN,
+    replacement(match, _field, quote, options) {
+      const prefix = match.match(/^(.*?[:=]\s*)(["']?)/u);
+      const delimiter = quote || "";
+      return `${prefix ? prefix[1] : ""}${delimiter}${getReplacement(options)}${delimiter}`;
+    }
+  },
+  {
+    name: "credit-card",
+    reason: "payment-card",
+    pattern: CREDIT_CARD_PATTERN,
+    replacement(match, options) {
+      return isLikelyCreditCard(match) ? maskValue(match, options) : match;
+    }
+  },
+  {
+    name: "phone",
+    reason: "phone",
+    pattern: PHONE_PATTERN
+  }
+];
+
 function fieldMatches(field, key) {
   if (field instanceof RegExp) {
     field.lastIndex = 0;
@@ -164,33 +193,6 @@ function findMaskField(key, options = {}) {
   return maskFields.find((rule) => fieldMatches(rule.field, key));
 }
 
-export function maskValue(value, options = {}) {
-  if (value === null || value === undefined) {
-    return value;
-  }
-
-  const stringValue = String(value);
-  const replacement = getReplacement(options);
-  const preserveFirst = Math.max(0, options.preserveFirst || 0);
-  const preserveLast = Math.max(0, options.preserveLast || 0);
-
-  if (preserveFirst === 0 && preserveLast === 0) {
-    return replacement;
-  }
-
-  if (stringValue.length <= preserveFirst + preserveLast) {
-    return replacement;
-  }
-
-  const start = stringValue.slice(0, preserveFirst);
-  const end = preserveLast > 0 ? stringValue.slice(-preserveLast) : "";
-  return `${start}${replacement}${end}`;
-}
-
-export function createMask(options = {}) {
-  return (value) => maskValue(value, options);
-}
-
 function applyRule(value, rule, options) {
   const pattern = clonePattern(rule.pattern);
   const replacement = rule.replacement;
@@ -211,7 +213,7 @@ function applyRule(value, rule, options) {
   });
 }
 
-export function redactString(value, options = {}) {
+function redactString(value, options = {}) {
   if (typeof value !== "string") {
     return value;
   }
@@ -331,8 +333,171 @@ function redactValue(value, options, seen, depth) {
   }
 }
 
-export function redact(value, options = {}) {
+function redact(value, options = {}) {
   return redactValue(value, options, new WeakSet(), 0);
 }
 
-export const maskPii = redact;
+function shouldLog(currentLevel, targetLevel) {
+  return LEVELS.indexOf(targetLevel) >= LEVELS.indexOf(currentLevel);
+}
+
+function createDefaultTransactionId(prefix = "txn") {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(16).slice(2, 18).padEnd(16, "0");
+  return `${prefix}_${timestamp}_${random}`;
+}
+
+function resolveTransactionId(transactionId) {
+  if (typeof transactionId === "function") {
+    return transactionId();
+  }
+
+  return transactionId;
+}
+
+function formatEntry(entry, formatter) {
+  const formatted = formatter(entry);
+
+  if (typeof formatted === "string") {
+    return formatted;
+  }
+
+  return JSON.stringify(formatted);
+}
+
+function normalizeLoggerOptions(options) {
+  const replacement = options.replacement ?? options.redaction ?? DEFAULT_REPLACEMENT;
+
+  return {
+    ...options,
+    replacement,
+    redaction: replacement
+  };
+}
+
+function buildEntry(level, message, meta, state) {
+  const maskOptions = state.maskOptions;
+  const transactionId = resolveTransactionId(state.transactionId);
+  const context = {
+    ...state.context
+  };
+
+  if (meta.length === 1 && isPlainObject(meta[0])) {
+    Object.assign(context, meta[0]);
+  } else if (meta.length > 0) {
+    context.meta = meta;
+  }
+
+  const entry = {
+    level,
+    message: typeof message === "string" ? redactString(message, maskOptions) : redact(message, maskOptions),
+    timestamp: new Date().toISOString()
+  };
+
+  if (Object.keys(context).length > 0) {
+    entry.context = redact(context, maskOptions);
+  }
+
+  if (state.service) {
+    entry.service = state.service;
+  }
+
+  if (transactionId) {
+    entry.transactionId = redactString(String(transactionId), maskOptions);
+  }
+
+  return entry;
+}
+
+function createLogger(state) {
+  const write = (targetLevel, message, ...meta) => {
+    if (!shouldLog(state.level, targetLevel)) {
+      return;
+    }
+
+    const entry = buildEntry(targetLevel, message, meta, state);
+    const line = formatEntry(entry, state.formatter);
+    const method =
+      typeof state.sink[targetLevel] === "function"
+        ? state.sink[targetLevel]
+        : typeof state.sink.log === "function"
+          ? state.sink.log
+          : () => {};
+
+    method.call(state.sink, line);
+  };
+
+  return {
+    debug(message, ...meta) {
+      write("debug", message, ...meta);
+    },
+    info(message, ...meta) {
+      write("info", message, ...meta);
+    },
+    warn(message, ...meta) {
+      write("warn", message, ...meta);
+    },
+    error(message, ...meta) {
+      write("error", message, ...meta);
+    },
+    log(message, ...meta) {
+      write("info", message, ...meta);
+    },
+    child(context = {}) {
+      return createLogger({
+        ...state,
+        context: {
+          ...state.context,
+          ...context
+        }
+      });
+    },
+    withTransaction(transactionId) {
+      const generator = state.transactionIdGenerator || createDefaultTransactionId;
+      return createLogger({
+        ...state,
+        transactionId: transactionId || generator()
+      });
+    }
+  };
+}
+
+function createTransactionId(prefix = "txn") {
+  return createDefaultTransactionId(prefix);
+}
+
+function createPiiSafeLogger(options = {}) {
+  const normalizedOptions = normalizeLoggerOptions(options);
+  const {
+    level = "info",
+    sink = console,
+    service,
+    formatter = JSON.stringify,
+    transactionId,
+    transactionIdGenerator,
+    ...maskOptions
+  } = normalizedOptions;
+
+  return createLogger({
+    level,
+    sink,
+    service,
+    formatter,
+    transactionId,
+    transactionIdGenerator,
+    context: {},
+    maskOptions
+  });
+}
+
+module.exports = {
+  DEFAULT_REDACT_FIELDS,
+  DEFAULT_REDACTION_RULES,
+  createMask,
+  createPiiSafeLogger,
+  createTransactionId,
+  maskPii: redact,
+  maskValue,
+  redact,
+  redactString
+};

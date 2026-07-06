@@ -18,8 +18,8 @@ Every push to `main` starts the deploy workflow. The workflow checks
 - If the version already exists on npm, publishing is skipped.
 - If the version does not exist on npm, the workflow runs tests and publishes it.
 
-The package currently published on npm is `0.2.2`. If `package.json` contains
-`1.0.0`, the workflow will publish `1.0.0` because it is a new version.
+For example, if npm already has `1.0.1` and `package.json` contains `1.1.0`,
+the workflow will publish `1.1.0` because it is a new version.
 
 ## Manual Deploy
 

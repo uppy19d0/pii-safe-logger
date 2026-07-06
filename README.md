@@ -1,5 +1,8 @@
 # pii-safe-logger
 
+[![CI](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/ci.yml/badge.svg)](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/ci.yml)
+[![Deploy to npm](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/publish.yml/badge.svg)](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/publish.yml)
+
 Small npm logger that redacts common PII before writing logs.
 
 ## Install

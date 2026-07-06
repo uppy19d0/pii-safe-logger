@@ -1,27 +1,61 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: Validate package
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout
+      - name: 1. Checkout source
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
-      - name: Set up Node.js
+      - name: 2. Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: 24
           package-manager-cache: false
 
-      - name: Install
+      - name: 3. Show package metadata
+        run: |
+          echo "Package: $(node -p "require('./package.json').name")"
+          echo "Version: $(node -p "require('./package.json').version")"
+          echo "Node: $(node --version)"
+          echo "npm: $(npm --version)"
+
+      - name: 4. Install clean dependencies
         run: npm ci --ignore-scripts
 
-      - name: Test
+      - name: 5. Run tests
         run: npm test
+
+      - name: 6. Preview npm package
+        run: npm pack --dry-run
+
+      - name: 7. Write pipeline summary
+        if: always()
+        run: |
+          {
+            echo "## CI Pipeline"
+            echo ""
+            echo "Job status: ${{ job.status }}"
+            echo ""
+            echo "| Check | Status |"
+            echo "| --- | --- |"
+            echo "| Checkout source | see step log |"
+            echo "| Set up Node.js 24 | see step log |"
+            echo "| Install with npm ci | see step log |"
+            echo "| Run tests | see step log |"
+            echo "| Preview npm package | see step log |"
+          } >> "$GITHUB_STEP_SUMMARY"

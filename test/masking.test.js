@@ -4,8 +4,13 @@ import { createRequire } from "node:module";
 import {
   DEFAULT_REDACTION_RULES,
   createMask,
+  createComplianceOptions,
+  createPinoPiiSafeLogger,
+  createPinoRedactionHooks,
   createPiiSafeLogger,
   createTransactionId,
+  createWinstonPiiSafeLogger,
+  createWinstonRedactionFormat,
   maskPii,
   maskValue,
   redact,
@@ -163,5 +168,97 @@ test("CommonJS entrypoint exposes the same core API", () => {
   const cjs = require("../src/index.cjs");
 
   assert.equal(typeof cjs.createPiiSafeLogger, "function");
+  assert.equal(typeof cjs.createComplianceOptions, "function");
   assert.equal(cjs.redactString("Email: luis@example.com"), "Email: [REDACTED]");
+});
+
+test("compliance presets redact GDPR, HIPAA and PCI payloads", () => {
+  const safe = redact(
+    {
+      email: "ana@example.com",
+      ipAddress: "192.168.1.10",
+      nationalId: "001-1234567-8",
+      patientName: "Ana Tavarez",
+      mrn: "MRN-0098123",
+      diagnosis: "hypertension",
+      cardNumber: "4111 1111 1111 1111",
+      cvv: "123",
+      trackData: "%B4111111111111111^TAVAREZ/ANA^29051200000000000000?",
+      notes: "patient_id=ABCD1234 paid with 4111111111111111 from 10.0.0.2"
+    },
+    createComplianceOptions("gdpr", "hipaa", "pci")
+  );
+
+  const serialized = JSON.stringify(safe);
+  assert.doesNotMatch(serialized, /ana@example\.com/i);
+  assert.doesNotMatch(serialized, /192\.168\.1\.10/);
+  assert.doesNotMatch(serialized, /001-1234567-8/);
+  assert.doesNotMatch(serialized, /Ana Tavarez/);
+  assert.doesNotMatch(serialized, /MRN-0098123/);
+  assert.doesNotMatch(serialized, /4111/);
+  assert.doesNotMatch(serialized, /%B411/);
+  assert.doesNotMatch(serialized, /10\.0\.0\.2/);
+});
+
+test("Winston wrapper redacts messages before writing to the target logger", () => {
+  const lines = [];
+  const winston = {
+    info(line) {
+      lines.push(line);
+    }
+  };
+
+  const logger = createWinstonPiiSafeLogger(winston, {
+    ...createComplianceOptions("gdpr", "pci"),
+    service: "checkout"
+  });
+
+  logger.info("Checkout for luis@example.com", {
+    cardNumber: "4111111111111111",
+    ipAddress: "172.16.1.9"
+  });
+
+  assert.equal(lines.length, 1);
+  assert.doesNotMatch(lines[0], /luis@example\.com/);
+  assert.doesNotMatch(lines[0], /4111111111111111/);
+  assert.doesNotMatch(lines[0], /172\.16\.1\.9/);
+});
+
+test("Pino wrapper and hooks redact object and string arguments", () => {
+  const lines = [];
+  const pino = {
+    info(line) {
+      lines.push(line);
+    }
+  };
+
+  const logger = createPinoPiiSafeLogger(pino, createComplianceOptions("pci"));
+  logger.info("Card 4111111111111111", { cvv: "123" });
+
+  assert.doesNotMatch(lines[0], /4111111111111111/);
+  assert.doesNotMatch(lines[0], /123/);
+
+  const hook = createPinoRedactionHooks(createComplianceOptions("gdpr"));
+  const hookLines = [];
+  hook.logMethod([
+    { email: "ana@example.com" },
+    "from 192.168.1.10"
+  ], function capture(...args) {
+    hookLines.push(args);
+  });
+
+  assert.equal(hookLines[0][0].email, "[REDACTED]");
+  assert.equal(hookLines[0][1], "from [REDACTED]");
+});
+
+test("Winston format helper returns a redacted info object", () => {
+  const format = createWinstonRedactionFormat(createComplianceOptions("hipaa"));
+  const output = format({
+    level: "info",
+    message: "patient_id=ABCD1234",
+    patientName: "Ana Tavarez"
+  });
+
+  assert.equal(output.patientName, "[REDACTED]");
+  assert.doesNotMatch(output.message, /ABCD1234/);
 });

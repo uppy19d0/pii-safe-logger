@@ -32,6 +32,15 @@ export interface MaskOptions {
   maskStringValues?: boolean;
 }
 
+export type CompliancePresetName = "gdpr" | "hipaa" | "pci";
+
+export interface CompliancePreset extends MaskOptions {
+  name: CompliancePresetName;
+  redactFields: Array<string | RegExp>;
+  rules: RedactionRule[];
+  maskFields: FieldMask[];
+}
+
 export interface LogEntry {
   level: LogLevel;
   message: unknown;
@@ -64,11 +73,22 @@ export interface PiiSafeLogger {
 
 export declare const DEFAULT_REDACT_FIELDS: string[];
 export declare const DEFAULT_REDACTION_RULES: RedactionRule[];
+export declare const COMPLIANCE_PRESETS: Readonly<Record<CompliancePresetName, CompliancePreset>>;
 
 export declare function createPiiSafeLogger(options?: LoggerOptions): PiiSafeLogger;
 export declare function createTransactionId(prefix?: string): string;
+export declare function createComplianceOptions(...presetNames: CompliancePresetName[]): MaskOptions;
+export declare function getCompliancePreset(name: CompliancePresetName): CompliancePreset;
 export declare function createMask(options?: MaskOptions): (value: unknown) => string;
 export declare function maskValue(value: unknown, options?: MaskOptions): unknown;
 export declare function redact<T>(value: T, options?: MaskOptions): T;
 export declare function redactString(value: string, options?: MaskOptions): string;
 export declare function maskPii<T>(value: T, options?: MaskOptions): T;
+
+export declare function createWinstonPiiSafeLogger(winstonLogger: unknown, options?: LoggerOptions): PiiSafeLogger;
+export declare function createPinoPiiSafeLogger(pinoLogger: unknown, options?: LoggerOptions): PiiSafeLogger;
+export declare function createWinstonRedactionFormat(options?: MaskOptions): <T>(info: T) => T;
+export declare function createPinoRedactionHooks(options?: MaskOptions): {
+  logMethod(args: unknown[], method: (...args: unknown[]) => unknown): unknown;
+};
+export declare function createSafeLogPayload<T>(value: T, options?: MaskOptions): T;

@@ -1,6 +1,8 @@
 # pii-safe-logger
 
 [![CI](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/ci.yml/badge.svg)](https://github.com/uppy19d0/pii-safe-logger/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/pii-safe-logger.svg)](https://www.npmjs.com/package/pii-safe-logger)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 PII-safe structured logging for JavaScript and TypeScript. It redacts sensitive
 data before logs reach `console`, a custom sink, or your observability pipeline.
@@ -41,6 +43,14 @@ and redaction rules.
 - Supports custom rules, custom field names, field-specific partial masking,
   custom redaction text, custom sinks, custom formatters, log levels, child
   loggers, and transaction IDs for traceability.
+
+## Production Readiness
+
+- Zero runtime dependencies.
+- CI validates SemVer policy, tests, and npm package contents.
+- Releases support npm provenance from GitHub Actions.
+- Public security, contribution, and code of conduct policies are included in the repository and npm package.
+- Designed for services that send logs to cloud logging, APM, SIEM, and observability platforms.
 
 ## Installation
 

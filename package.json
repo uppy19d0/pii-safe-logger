@@ -1,6 +1,6 @@
 {
   "name": "pii-safe-logger",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "PII-safe structured logger and redaction utilities for JavaScript and TypeScript.",
   "type": "module",
   "main": "./src/index.cjs",
@@ -19,7 +19,9 @@
     "README.md",
     "DEPLOY.md",
     "SEMVER.md",
-    "SECURITY.md"
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md"
   ],
   "sideEffects": false,
   "scripts": {

@@ -51,6 +51,8 @@ and redaction rules.
 - Releases support npm provenance from GitHub Actions.
 - Public security, contribution, and code of conduct policies are included in the repository and npm package.
 - Designed for services that send logs to cloud logging, APM, SIEM, and observability platforms.
+- Security model and standards notes are documented in `SECURITY_MODEL.md` and `STANDARDS.md`.
+- The test suite includes a leak corpus for cloud secrets, source-control tokens, private keys, database URLs, PHI, personal data, PANs, CVV/CVC, and magnetic stripe data.
 
 ## Installation
 

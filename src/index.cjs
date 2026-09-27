@@ -33,6 +33,11 @@ const CREDIT_CARD_PATTERN = /\b(?:\d[ -]*?){13,19}\b/g;
 const PHONE_PATTERN = /(?<![\w])\+?(?:\d[\d\s().-]{7,}\d)(?![\w])/g;
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
 const BEARER_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+\b/gi;
+const AWS_ACCESS_KEY_PATTERN = /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g;
+const GITHUB_TOKEN_PATTERN = /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,255}\b/g;
+const SLACK_TOKEN_PATTERN = /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g;
+const PRIVATE_KEY_PATTERN = /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g;
+const DATABASE_URL_PATTERN = /\b(?:postgres|postgresql|mysql|mongodb(?:\+srv)?|redis):\/\/[^\s"']+/gi;
 const SECRET_ASSIGNMENT_PATTERN =
   /\b(password|passwd|token|api[_-]?key|secret|otp|pin)\s*[:=]\s*(["']?)[^"',\s;}]+/gi;
 
@@ -137,6 +142,31 @@ const DEFAULT_REDACTION_RULES = [
     name: "bearer-token",
     reason: "token",
     pattern: BEARER_PATTERN
+  },
+  {
+    name: "aws-access-key",
+    reason: "cloud-secret",
+    pattern: AWS_ACCESS_KEY_PATTERN
+  },
+  {
+    name: "github-token",
+    reason: "source-control-token",
+    pattern: GITHUB_TOKEN_PATTERN
+  },
+  {
+    name: "slack-token",
+    reason: "chat-token",
+    pattern: SLACK_TOKEN_PATTERN
+  },
+  {
+    name: "private-key",
+    reason: "private-key",
+    pattern: PRIVATE_KEY_PATTERN
+  },
+  {
+    name: "database-url",
+    reason: "connection-string",
+    pattern: DATABASE_URL_PATTERN
   },
   {
     name: "secret-assignment",

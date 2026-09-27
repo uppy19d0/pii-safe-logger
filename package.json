@@ -19,7 +19,9 @@
     "README.md",
     "DEPLOY.md",
     "SEMVER.md",
-    "SECURITY.md"
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md"
   ],
   "sideEffects": false,
   "scripts": {

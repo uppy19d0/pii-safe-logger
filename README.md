@@ -230,6 +230,95 @@ maskValue("4111111111111111", {
 // "411111******1111"
 ```
 
+## Compliance Presets
+
+Use compliance presets when your service handles regulated data and you want a
+strong starting policy for log redaction.
+
+```js
+import { createComplianceOptions, createPiiSafeLogger } from "pii-safe-logger";
+
+const logger = createPiiSafeLogger({
+  service: "claims-api",
+  ...createComplianceOptions("gdpr", "hipaa", "pci")
+});
+
+logger.info("Claim paid for ana@example.com", {
+  patientName: "Ana Tavarez",
+  mrn: "MRN-0098123",
+  ipAddress: "192.168.1.10",
+  cardNumber: "4111111111111111"
+});
+```
+
+Available presets:
+
+| Preset | Adds coverage for |
+| --- | --- |
+| `gdpr` | names, address fields, IPs, cookies, device IDs, national IDs |
+| `hipaa` | patient identifiers, MRNs, claims, diagnoses, policy numbers |
+| `pci` | PAN/card fields, CVV/CVC, cardholder fields, magstripe track data |
+
+Presets are configurable. You can spread them and still add your own fields,
+rules, formatter, sink, or masking policy.
+
+## Winston and Pino
+
+The package integrates with existing Winston and Pino instances without adding
+either logger as a dependency.
+
+```js
+import {
+  createComplianceOptions,
+  createPinoPiiSafeLogger,
+  createWinstonPiiSafeLogger
+} from "pii-safe-logger";
+
+const safeWinston = createWinstonPiiSafeLogger(winstonLogger, {
+  ...createComplianceOptions("gdpr", "pci"),
+  service: "checkout-api"
+});
+
+const safePino = createPinoPiiSafeLogger(pinoLogger, {
+  ...createComplianceOptions("hipaa")
+});
+
+safeWinston.info("Payment received for luis@example.com", {
+  cardNumber: "4111111111111111"
+});
+
+safePino.info("Patient lookup", {
+  patientName: "Ana Tavarez",
+  mrn: "MRN-0098123"
+});
+```
+
+If you prefer to keep your logger API untouched, use the redaction helpers:
+
+```js
+import {
+  createComplianceOptions,
+  createPinoRedactionHooks,
+  createWinstonRedactionFormat
+} from "pii-safe-logger";
+
+const piiSafeFormat = createWinstonRedactionFormat(createComplianceOptions("gdpr"));
+const piiSafeHooks = createPinoRedactionHooks(createComplianceOptions("pci"));
+```
+
+## Benchmark
+
+Run the benchmark to measure redaction throughput for a mixed GDPR/HIPAA/PCI
+payload on your machine or CI runner.
+
+```bash
+npm run benchmark
+ITERATIONS=100000 npm run benchmark
+```
+
+The benchmark prints JSON with elapsed time, operations per second, and a safe
+sample payload.
+
 ## Custom Rules
 
 Custom rules let you redact business-specific identifiers that a generic logger

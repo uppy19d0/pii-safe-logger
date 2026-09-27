@@ -1,6 +1,6 @@
 {
   "name": "pii-safe-logger",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "PII-safe structured logger and redaction utilities for JavaScript and TypeScript.",
   "type": "module",
   "main": "./src/index.cjs",
@@ -21,12 +21,14 @@
     "SEMVER.md",
     "SECURITY.md",
     "CONTRIBUTING.md",
-    "CODE_OF_CONDUCT.md"
+    "CODE_OF_CONDUCT.md",
+    "benchmark"
   ],
   "sideEffects": false,
   "scripts": {
     "test": "node --test",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "npm test",
+    "benchmark": "node benchmark/redaction-benchmark.js"
   },
   "keywords": [
     "logger",

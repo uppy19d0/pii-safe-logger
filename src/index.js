@@ -8,3 +8,11 @@ export {
   redact,
   redactString
 } from "./masking.js";
+export { COMPLIANCE_PRESETS, createComplianceOptions, getCompliancePreset } from "./presets.js";
+export {
+  createPinoPiiSafeLogger,
+  createPinoRedactionHooks,
+  createSafeLogPayload,
+  createWinstonPiiSafeLogger,
+  createWinstonRedactionFormat
+} from "./integrations.js";

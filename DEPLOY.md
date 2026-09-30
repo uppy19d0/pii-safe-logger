@@ -1,59 +1,24 @@
 # Deploy to npm
 
-This repository publishes `pii-safe-logger` to npm through GitHub Actions.
+`pii-safe-logger` publishes through `.github/workflows/publish.yml` using npm Trusted Publishing and GitHub OIDC. The workflow does not need an npm token.
 
-## One-Time Setup
+## One-time npm setup
 
-1. Revoke any npm token that was shared outside npm or GitHub Secrets.
-2. Create a new npm token from npmjs.com.
-3. In GitHub, open `Settings` > `Secrets and variables` > `Actions`.
-4. Add a repository secret named `NPM_TOKEN`.
-5. Paste the new npm token as the secret value.
+In the npm package settings for `pii-safe-logger`, add a GitHub Actions trusted publisher with:
 
-## Automatic Deploy
+- Owner: `uppy19d0`
+- Repository: `pii-safe-logger`
+- Workflow filename: `publish.yml`
+- Environment: `npm`
+- Allowed action: direct `npm publish`
 
-Every push to `main` starts the deploy workflow. The workflow checks
-`package.json` against npm before publishing.
+The workflow filename is just `publish.yml`. Keep the GitHub `npm` environment configured. After a successful trusted release, revoke the old npm automation token and delete the `NPM_TOKEN` repository secret.
 
-- If the version already exists on npm, publishing is skipped.
-- If the version does not exist on npm, the workflow runs tests and publishes it.
+## Release
 
-For example, if npm already has `1.0.1` and `package.json` contains `1.1.0`,
-the workflow will publish `1.1.0` because it is a new version.
+1. Update the package version and run `npm ci --ignore-scripts`, `npm audit --audit-level=high`, and `npm test`.
+2. Merge through CI. The `Create GitHub Release` workflow creates the release, and its successful completion triggers `Deploy to npm`. You can also run the deploy workflow manually from `main`.
+3. The deploy workflow skips a version that already exists. For a new version, it checks dependencies, tests, previews the package, and publishes with provenance.
+4. Verify the new version and provenance attestation on npm.
 
-## Manual Deploy
-
-1. Open the repository on GitHub.
-2. Go to `Actions`.
-3. Open `Deploy to npm`.
-4. Click `Run workflow`.
-5. Select branch `main`.
-6. Click `Run workflow`.
-
-The workflow will:
-
-1. check out the code
-2. set up Node.js
-3. show the package name and version
-4. check whether the version already exists on npm
-5. install dependencies with `npm ci` when the version is new
-6. run tests when the version is new
-7. verify the npm token when the version is new
-8. preview the package files
-9. publish to npm with provenance
-10. verify the published package version
-
-## Release Deploy
-
-Creating a GitHub release also runs the same deploy workflow:
-
-1. Update `version` in `package.json`.
-2. Commit and push the change.
-3. Create a Git tag, for example `v1.0.1`.
-4. Push the tag.
-5. Create a GitHub Release from that tag.
-
-## Important
-
-Never commit npm tokens to this repository. The workflow reads the token only
-from the GitHub secret named `NPM_TOKEN`.
+Never move a published tag or reuse an npm version. Increment the version to fix a failed release.

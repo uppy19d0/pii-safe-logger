@@ -14,6 +14,8 @@ In the npm package settings for `pii-safe-logger`, add a GitHub Actions trusted 
 
 The workflow filename is just `publish.yml`. Keep the GitHub `npm` environment configured. After a successful trusted release, revoke the old npm automation token and delete the `NPM_TOKEN` repository secret.
 
+The repository variable `NPM_TRUSTED_PUBLISHING_ENABLED` keeps release and publish jobs disabled until npm setup is complete. Set it to `true` in GitHub Actions variables only after the trusted publisher is configured. Then manually run `Create GitHub Release` on `main` to publish the version prepared while the gate was closed. Leave the variable unset or `false` until npm is ready.
+
 ## Release
 
 1. Update the package version and run `npm ci --ignore-scripts`, `npm audit --audit-level=high`, and `npm test`.

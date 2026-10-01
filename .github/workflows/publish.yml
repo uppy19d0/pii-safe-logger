@@ -22,7 +22,7 @@ concurrency:
 jobs:
   deploy:
     name: Build, test, and publish
-    if: ${{ !github.event.repository.private && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) }}
+    if: ${{ vars.NPM_TRUSTED_PUBLISHING_ENABLED == 'true' && !github.event.repository.private && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) }}
     runs-on: ubuntu-latest
     environment: npm
     timeout-minutes: 10

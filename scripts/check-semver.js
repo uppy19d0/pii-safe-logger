@@ -73,6 +73,14 @@ function getBaseRef() {
     return baseRef;
   }
 
+  const currentBranch = process.env.GITHUB_REF_NAME || tryGit(["branch", "--show-current"]);
+  if (currentBranch && currentBranch !== "main") {
+    tryGit(["fetch", "origin", "main", "--depth=1"]);
+    if (tryGit(["rev-parse", "--verify", "origin/main"])) {
+      return "origin/main";
+    }
+  }
+
   if (tryGit(["rev-parse", "--verify", "HEAD^"])) {
     return "HEAD^";
   }

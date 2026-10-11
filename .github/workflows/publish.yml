@@ -2,6 +2,11 @@ name: Deploy to npm
 
 on:
   workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: Use the temporary token for a verified first release
+        type: boolean
+        default: false
   release:
     types:
       - published
@@ -21,7 +26,7 @@ concurrency:
 jobs:
   deploy:
     name: Build, test, and publish
-    if: ${{ vars.NPM_TRUSTED_PUBLISHING_ENABLED == 'true' && !github.event.repository.private && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) }}
+    if: ${{ ((github.event_name == 'workflow_dispatch' && inputs.bootstrap && github.ref == 'refs/heads/main') || vars.NPM_TRUSTED_PUBLISHING_ENABLED == 'true') && !github.event.repository.private && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -87,6 +92,8 @@ jobs:
       - name: 10. Publish to npm
         if: steps.npm_version.outputs.published == 'false'
         run: npm publish --provenance --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ inputs.bootstrap && secrets.NPM_BOOTSTRAP_TOKEN || '' }}
 
       - name: 11. Verify published package
         if: steps.npm_version.outputs.published == 'false'

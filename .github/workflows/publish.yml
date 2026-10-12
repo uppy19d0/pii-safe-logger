@@ -85,6 +85,10 @@ jobs:
         if: steps.npm_version.outputs.published == 'false'
         run: npm test
 
+      - name: Test package artifact guard
+        run: node --test scripts/check-package-contents.test.mjs
+      - name: Verify published package contents
+        run: node scripts/check-package-contents.mjs .
       - name: 9. Preview npm package contents
         if: steps.npm_version.outputs.published == 'false'
         run: npm pack --dry-run

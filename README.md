@@ -633,3 +633,20 @@ vendor payloads, and internal tokens.
 Avoid intentionally passing secrets to logs. This package reduces accidental
 exposure; it does not replace access controls, log retention policies, or
 security review.
+
+
+## Supply-chain verification and runtime permissions
+
+Runtime: structured serialization and bounded redaction. The caller chooses the output transport and remains responsible for its access controls, retention and any sensitive fields the configured redaction policy does not cover. The package does not perform automatic network uploads.
+
+Install the exact version required by your application and commit your lockfile. Releases request npm provenance from GitHub Actions, and CI checks the dependency graph and package contents before publication. The artifact guard rejects recognized credential patterns, private/environment files, unsafe paths, missing attribution/metadata and unexpected consumer install hooks. It is a focused release check, not proof that every secret or malicious behavior is detectable.
+
+```sh
+npm install --save-exact pii-safe-logger@1.3.2
+npm audit
+npm audit signatures
+```
+
+When the installed graph has no registry dependencies, npm may report that there are no dependency signatures to verify.
+
+Inspect the exact-version [Socket report](https://socket.dev/npm/package/pii-safe-logger/overview/1.3.2) and the npm provenance link. A successful CI check is not the same as a package score of 100. Socket also weighs dependency counts and real adoption; no score, download history or security guarantee is fabricated. Report suspected issues through SECURITY.md.

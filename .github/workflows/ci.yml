@@ -47,6 +47,10 @@ jobs:
       - name: 6. Run tests
         run: npm test
 
+      - name: Test package artifact guard
+        run: node --test scripts/check-package-contents.test.mjs
+      - name: Verify published package contents
+        run: node scripts/check-package-contents.mjs .
       - name: 7. Preview npm package
         run: npm pack --dry-run
 
